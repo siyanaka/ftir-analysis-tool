@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  FTIR Analysis Tool v2.7
+  FTIR Analysis Tool v2.8
   Copyright (c) 2025 Siyanaka. All rights reserved.
 
   THIRD-PARTY COMPONENTS
@@ -3912,15 +3912,68 @@ window.Plotly = Plotly;
 return Plotly;
 }));</script>
     <style>
+
+        /* ============================================================
+           Design tokens — modern refresh (layout & classes unchanged)
+           ============================================================ */
+        :root {
+            --bg:            #eef1f6;
+            --surface:       #ffffff;
+            --surface-2:     #f6f8fb;
+            --border:        #e5e9f0;
+            --border-strong: #d4dbe6;
+            --text:          #1e2a3a;
+            --text-muted:    #64748b;
+            --text-faint:    #94a3b8;
+
+            --primary:        #2563eb;
+            --primary-hover:  #1d4ed8;
+            --primary-soft:   #eef4ff;
+            --primary-border: #bcd3fb;
+
+            --success:        #059669;
+            --success-hover:  #047857;
+            --success-soft:   #ecfdf5;
+            --success-border: #a6e8cf;
+
+            --danger:         #dc2626;
+            --danger-hover:   #b91c1c;
+            --danger-soft:    #fef2f2;
+            --danger-border:  #f5c2c2;
+
+            --accent-violet:  #7c3aed;
+            --violet-soft:    #f5f0fe;
+            --violet-border:  #d5c2f2;
+
+            --warn-bg:     #fffaeb;
+            --warn-border: #f5c451;
+            --warn-accent: #ea9a2e;
+            --warn-text:   #7a5a00;
+
+            --radius:    14px;
+            --radius-sm: 10px;
+            --radius-xs: 7px;
+
+            --shadow-sm: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+            --shadow-md: 0 6px 18px rgba(16,24,40,.08);
+            --ring: 0 0 0 3px rgba(37,99,235,.18);
+
+            --header-grad: linear-gradient(135deg, #0f172a 0%, #1e293b 52%, #243b53 100%);
+        }
+
         *, *::before, *::after { box-sizing: border-box; }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
             margin: 0;
-            padding: 16px;
-            background: #f0f2f5;
-            color: #2c3e50;
+            padding: 22px 18px 28px;
+            background:
+                radial-gradient(1200px 500px at 50% -280px, #e3e9f4 0%, rgba(227,233,244,0) 70%),
+                var(--bg);
+            color: var(--text);
             font-size: 14px;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
         }
 
         .container {
@@ -3928,208 +3981,306 @@ return Plotly;
             margin: auto;
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 16px;
         }
 
         /* ─── Header ─── */
         .header {
-            background: linear-gradient(135deg, #1a252f 0%, #2c3e50 100%);
+            position: relative;
+            background: var(--header-grad);
             color: white;
-            padding: 18px 24px;
-            border-radius: 10px;
+            padding: 22px 28px;
+            border-radius: var(--radius);
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 12px;
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
         }
-        .header h1 { margin: 0; font-size: 1.5em; font-weight: 600; letter-spacing: 0.5px; }
-        .header .version { font-size: 0.75em; opacity: 0.6; margin-top: 2px; }
+        .header::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--accent-violet) 55%, var(--success));
+            opacity: .95;
+        }
+        .header::after {
+            content: "";
+            position: absolute;
+            top: -60%;
+            right: -8%;
+            width: 320px;
+            height: 320px;
+            background: radial-gradient(circle, rgba(37,99,235,.28), rgba(37,99,235,0) 68%);
+            pointer-events: none;
+        }
+        .header > * { position: relative; z-index: 1; }
+        .header h1 { margin: 0; font-size: 1.5em; font-weight: 650; letter-spacing: 0.2px; }
+        .header .version {
+            font-size: 0.74em;
+            opacity: 0.72;
+            margin-top: 4px;
+            letter-spacing: 0.2px;
+        }
 
         /* ─── Status Bar ─── */
         .status-bar {
-            background: white;
-            border: 1px solid #dde1e7;
-            border-radius: 8px;
-            padding: 12px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 14px;
             align-items: flex-start;
+            box-shadow: var(--shadow-sm);
         }
         .status-section { flex: 1; min-width: 200px; }
         .status-label {
             font-size: 0.72em;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: #7f8c8d;
-            margin-bottom: 6px;
+            letter-spacing: 0.9px;
+            color: var(--text-muted);
+            margin-bottom: 7px;
+        }
+        .status-hint {
+            font-weight: 500;
+            text-transform: none;
+            letter-spacing: 0;
+            color: var(--text-faint);
         }
         .file-chip {
             display: inline-flex;
             align-items: center;
-            gap: 5px;
-            padding: 3px 10px 3px 8px;
-            border-radius: 20px;
+            gap: 6px;
+            padding: 4px 11px 4px 9px;
+            border-radius: 999px;
             font-size: 0.82em;
             font-weight: 500;
             margin: 2px;
+            box-shadow: var(--shadow-sm);
         }
-        .file-chip.db-chip { background: #eaf6ee; border: 1px solid #a8d5b5; }
-        .file-chip.unknown-chip { background: #fdecea; border: 1px solid #f5b8b3; color: #c0392b; }
-        .file-chip .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+        .file-chip.db-chip { background: var(--success-soft); border: 1px solid var(--success-border); color: #10603f; }
+        .file-chip.unknown-chip { background: var(--danger-soft); border: 1px solid var(--danger-border); color: #b0342b; }
+        .file-chip .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 2px rgba(255,255,255,.7); }
         .file-chip .remove-btn {
             background: none; border: none; cursor: pointer; padding: 0 0 0 3px;
             font-size: 1em; line-height: 1; color: #95a5a6; opacity: 0.7;
-            transition: opacity 0.15s;
+            transition: opacity 0.15s, color 0.15s;
         }
-        .file-chip .remove-btn:hover { opacity: 1; color: #e74c3c; }
-        .status-empty { color: #bdc3c7; font-size: 0.85em; font-style: italic; }
+        .file-chip .remove-btn:hover { opacity: 1; color: var(--danger); }
+        .status-empty { color: var(--text-faint); font-size: 0.85em; font-style: italic; }
+
+        /* Per-chip intensity slider */
+        .file-chip .chip-name { white-space: nowrap; }
+        .file-chip .chip-int {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-left: 2px;
+            padding-left: 7px;
+            border-left: 1px solid rgba(0,0,0,0.10);
+        }
+        .file-chip .chip-int-slider {
+            width: 62px;
+            height: 4px;
+            cursor: pointer;
+            accent-color: currentColor;
+            vertical-align: middle;
+        }
+        .file-chip .chip-int-val {
+            font-variant-numeric: tabular-nums;
+            font-size: 0.9em;
+            font-weight: 700;
+            min-width: 30px;
+            opacity: 0.85;
+        }
 
         /* ─── Notification ─── */
         #notification {
             display: none;
-            padding: 10px 15px;
-            border-radius: 6px;
+            padding: 11px 16px;
+            border-radius: var(--radius-sm);
             font-size: 0.88em;
             font-weight: 500;
+            box-shadow: var(--shadow-sm);
             animation: fadeIn 0.2s ease;
         }
-        #notification.error { background: #fdecea; border: 1px solid #f5b8b3; color: #c0392b; display: block; }
-        #notification.info  { background: #eaf4fb; border: 1px solid #aed6f1; color: #1a5276; display: block; }
+        #notification.error { background: var(--danger-soft); border: 1px solid var(--danger-border); color: var(--danger-hover); display: block; }
+        #notification.info  { background: var(--primary-soft); border: 1px solid var(--primary-border); color: #1d4ed8; display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
         /* ─── Instructions ─── */
         .instructions {
-            background: #eaf4fb;
-            border-left: 4px solid #3498db;
-            border-radius: 6px;
-            padding: 12px 16px;
+            background: var(--primary-soft);
+            border: 1px solid var(--primary-border);
+            border-left: 4px solid var(--primary);
+            border-radius: var(--radius-sm);
+            padding: 13px 17px;
             font-size: 0.88em;
-            color: #1a5276;
+            color: #1e40af;
         }
         .instructions strong { display: block; margin-bottom: 6px; font-size: 1em; }
         .instructions ol { margin: 0; padding-left: 18px; line-height: 1.8; }
 
         /* ─── Controls Panel ─── */
         .controls {
-            background: white;
-            border: 1px solid #dde1e7;
-            border-radius: 8px;
-            padding: 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px;
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 14px;
+            gap: 16px;
             align-items: end;
+            box-shadow: var(--shadow-sm);
         }
-        .control-group { display: flex; flex-direction: column; gap: 6px; }
+        .control-group { display: flex; flex-direction: column; gap: 7px; }
         .control-group label {
             font-size: 0.75em;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.7px;
-            color: #7f8c8d;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
         }
-        .control-group label span { font-weight: 700; color: #e74c3c; text-transform: none; letter-spacing: 0; }
+        .control-group label span { font-weight: 700; color: var(--danger); text-transform: none; letter-spacing: 0; }
 
         input[type="file"] {
             font-size: 0.85em;
-            padding: 6px;
-            background: #f8f9fa;
-            border: 1.5px dashed #bdc3c7;
-            border-radius: 5px;
+            padding: 9px;
+            background: var(--surface-2);
+            border: 1.5px dashed var(--border-strong);
+            border-radius: var(--radius-xs);
             cursor: pointer;
             width: 100%;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, background 0.2s;
         }
-        input[type="file"]:hover { border-color: #3498db; background: #eaf4fb; }
-        input[type="range"] { width: 100%; cursor: pointer; accent-color: #3498db; }
+        input[type="file"]:hover { border-color: var(--primary); background: var(--primary-soft); }
+        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--primary); }
 
         input[type="number"] {
-            padding: 6px 8px;
-            border: 1px solid #bdc3c7;
-            border-radius: 4px;
+            padding: 8px 10px;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-xs);
             font-size: 0.9em;
             width: 100%;
+            background: var(--surface);
+            color: var(--text);
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        input[type="number"]:focus,
+        input[type="file"]:focus-visible {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: var(--ring);
         }
 
         .btn {
-            padding: 9px 16px;
+            padding: 10px 17px;
             border: none;
-            border-radius: 5px;
+            border-radius: var(--radius-xs);
             cursor: pointer;
             font-weight: 600;
             font-size: 0.88em;
-            transition: all 0.18s;
-            letter-spacing: 0.3px;
+            transition: transform 0.12s ease, box-shadow 0.18s ease, background 0.18s ease;
+            letter-spacing: 0.2px;
+            box-shadow: var(--shadow-sm);
         }
-        .btn-primary { background: #3498db; color: white; }
-        .btn-primary:hover { background: #2980b9; }
-        .btn-danger  { background: #e74c3c; color: white; }
-        .btn-danger:hover  { background: #c0392b; }
-        .btn-success { background: #27ae60; color: white; }
-        .btn-success:hover { background: #229954; }
-        .btn-secondary { background: #ecf0f1; color: #2c3e50; border: 1px solid #bdc3c7; }
-        .btn-secondary:hover { background: #d5dbdb; }
+        .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .btn:active { transform: translateY(0); box-shadow: var(--shadow-sm); }
+        .btn:focus-visible { outline: none; box-shadow: var(--ring); }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-danger  { background: var(--danger); color: white; }
+        .btn-danger:hover  { background: var(--danger-hover); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: var(--success-hover); }
+        .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); }
+        .btn-secondary:hover { background: var(--surface-2); border-color: var(--text-faint); }
 
         .controls-actions { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
 
         /* ─── Matching Region ─── */
         .match-region {
-            background: white;
-            border: 1px solid #dde1e7;
-            border-radius: 8px;
-            padding: 14px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 15px 17px;
             display: flex;
             flex-wrap: wrap;
             gap: 14px;
             align-items: flex-end;
+            box-shadow: var(--shadow-sm);
         }
         .match-region-label {
             font-size: 0.75em;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.7px;
-            color: #7f8c8d;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
             align-self: flex-end;
             padding-bottom: 8px;
         }
-        .region-presets { display: flex; gap: 6px; flex-wrap: wrap; align-items: flex-end; }
+        .region-presets { display: flex; gap: 7px; flex-wrap: wrap; align-items: flex-end; }
         .preset-btn {
-            padding: 5px 10px;
-            background: #f0f2f5;
-            border: 1px solid #bdc3c7;
-            border-radius: 4px;
+            padding: 6px 12px;
+            background: var(--surface-2);
+            border: 1px solid var(--border-strong);
+            border-radius: 999px;
             cursor: pointer;
             font-size: 0.78em;
             font-weight: 600;
-            color: #34495e;
+            color: #334155;
             transition: all 0.15s;
         }
-        .preset-btn:hover, .preset-btn.active { background: #3498db; color: white; border-color: #3498db; }
+        .preset-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
+        .preset-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: var(--shadow-sm); }
+
+        /* ─── Plot navigation hint ─── */
+        .plot-hint {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            background: var(--primary-soft);
+            border: 1px solid var(--primary-border);
+            border-radius: var(--radius-sm);
+            padding: 9px 14px;
+            font-size: 0.82em;
+            color: #1e40af;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: -6px;
+        }
+        .plot-hint-icon { font-size: 1.1em; line-height: 1.4; flex-shrink: 0; }
+        .plot-hint b { font-weight: 700; }
 
         /* ─── Plot ─── */
         #plotArea {
             width: 100%;
             height: 680px;
-            border: 1px solid #dde1e7;
-            border-radius: 8px;
-            background: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
         }
 
         /* ─── Functional Groups ─── */
         .fg-panel {
-            background: white;
-            border: 1px solid #dde1e7;
-            border-radius: 8px;
-            padding: 14px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow-sm);
         }
         .fg-panel-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: 13px;
             flex-wrap: wrap;
             gap: 8px;
         }
@@ -4137,8 +4288,8 @@ return Plotly;
             font-size: 0.75em;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.7px;
-            color: #7f8c8d;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
         }
         .fg-quick-btns { display: flex; gap: 6px; }
         .checkbox-grid { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -4146,25 +4297,26 @@ return Plotly;
             display: flex;
             align-items: center;
             gap: 6px;
-            font-weight: 400;
+            font-weight: 500;
             cursor: pointer;
-            background: #f8f9fa;
-            padding: 5px 10px;
-            border-radius: 5px;
-            border: 1px solid #dde1e7;
+            background: var(--surface-2);
+            padding: 6px 11px;
+            border-radius: var(--radius-xs);
+            border: 1px solid var(--border);
             font-size: 0.84em;
             transition: all 0.15s;
             user-select: none;
         }
-        .checkbox-label:hover { background: #eaf6ee; border-color: #27ae60; }
-        .checkbox-label input[type="checkbox"] { accent-color: #27ae60; width: 13px; height: 13px; }
+        .checkbox-label:hover { background: var(--success-soft); border-color: var(--success-border); }
+        .checkbox-label input[type="checkbox"] { accent-color: var(--success); width: 14px; height: 14px; }
 
         /* ─── Results ─── */
         .results {
-            background: white;
-            border: 1px solid #dde1e7;
-            border-radius: 8px;
-            padding: 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px;
+            box-shadow: var(--shadow-sm);
         }
         .results-header {
             display: flex;
@@ -4173,69 +4325,72 @@ return Plotly;
             margin-bottom: 12px;
         }
         .results-title {
-            font-size: 1em;
+            font-size: 1.02em;
             font-weight: 700;
-            color: #2c3e50;
+            color: var(--text);
+            letter-spacing: 0.1px;
         }
         .results-subtitle {
             font-size: 0.78em;
-            color: #7f8c8d;
-            margin-top: 2px;
+            color: var(--text-muted);
+            margin-top: 3px;
         }
 
-        table { width: 100%; border-collapse: collapse; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; }
         thead tr th {
-            background: #2c3e50;
-            color: white;
-            padding: 10px 14px;
+            background: #f1f5fb;
+            color: #475569;
+            padding: 11px 15px;
             text-align: left;
-            font-size: 0.82em;
-            font-weight: 600;
-            letter-spacing: 0.4px;
+            font-size: 0.74em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            border-bottom: 1px solid var(--border-strong);
         }
-        thead tr th:first-child { border-radius: 5px 0 0 0; }
-        thead tr th:last-child  { border-radius: 0 5px 0 0; }
-        tbody tr { border-bottom: 1px solid #f0f2f5; transition: background 0.1s; }
-        tbody tr:hover { background: #f8f9fa; }
-        tbody tr:first-child td { border-top: none; }
-        td { padding: 9px 14px; font-size: 0.88em; }
-        td.rank { color: #7f8c8d; font-weight: 600; width: 40px; }
-        td.mat-name { font-weight: 500; }
+        thead tr th:first-child { border-radius: var(--radius-xs) 0 0 0; }
+        thead tr th:last-child  { border-radius: 0 var(--radius-xs) 0 0; }
+        tbody tr { border-bottom: 1px solid #eef1f6; transition: background 0.12s; }
+        tbody tr:hover { background: var(--surface-2); }
+        tbody tr:last-child { border-bottom: none; }
+        td { padding: 10px 15px; font-size: 0.88em; border-bottom: 1px solid #eef1f6; }
+        tbody tr:last-child td { border-bottom: none; }
+        td.rank { color: var(--text-faint); font-weight: 700; width: 40px; }
+        td.mat-name { font-weight: 600; }
 
         .conf-bar-cell { width: 240px; }
-        .conf-bar-wrapper { display: flex; align-items: center; gap: 8px; }
+        .conf-bar-wrapper { display: flex; align-items: center; gap: 9px; }
         .conf-bar-bg {
             flex: 1;
-            height: 8px;
-            background: #ecf0f1;
-            border-radius: 4px;
+            height: 9px;
+            background: #e9edf3;
+            border-radius: 999px;
             overflow: hidden;
         }
         .conf-bar-fill {
             height: 100%;
-            border-radius: 4px;
+            border-radius: 999px;
             transition: width 0.5s ease;
         }
         .conf-value { font-weight: 700; font-size: 0.92em; min-width: 50px; text-align: right; }
 
         .badge {
             display: inline-block;
-            padding: 1px 7px;
-            border-radius: 10px;
+            padding: 2px 9px;
+            border-radius: 999px;
             font-size: 0.72em;
             font-weight: 700;
             letter-spacing: 0.3px;
         }
-        .badge-best { background: #d5f5e3; color: #1e8449; }
+        .badge-best { background: var(--success-soft); color: var(--success-hover); border: 1px solid var(--success-border); }
 
         /* ─── Footer ─── */
         .footer {
             text-align: center;
-            font-size: 0.75em;
-            color: #bdc3c7;
+            font-size: 0.76em;
+            color: var(--text-faint);
             padding-bottom: 8px;
         }
-    
 
         /* ─── Print ─── */
         @media print {
@@ -4243,10 +4398,14 @@ return Plotly;
             .controls, .match-region, .plastic-panel, .fg-panel,
             #notification, .header .btn, .status-bar, .instructions,
             .region-presets, .fg-quick-btns, .plastic-panel-header button,
-            .modeBar { display: none !important; }
-            #plotArea { height: 520px !important; page-break-inside: avoid; }
-            .results { page-break-before: auto; }
-            .header { background: #2c3e50 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .plot-hint, .modeBar { display: none !important; }
+            #plotArea { height: 520px !important; page-break-inside: avoid; box-shadow: none; }
+            .results { page-break-before: auto; box-shadow: none; }
+            .header {
+                background: #1e293b !important;
+                box-shadow: none;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            }
             .footer { display: block !important; text-align: center; font-size: 0.75em; color: #aaa; margin-top: 8px; }
         }
         /* ─── Instructions at bottom ─── */
@@ -4264,7 +4423,7 @@ return Plotly;
         .plastic-two-col {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 16px;
+            gap: 18px;
             margin-bottom: 10px;
         }
         @media (max-width: 700px) {
@@ -4274,21 +4433,22 @@ return Plotly;
         .instructions-heading {
             font-size: 0.82em;
             font-weight: 700;
-            color: #2c3e50;
+            color: var(--text);
             margin-bottom: 6px;
         }
         .instructions-bottom {
-            background: #f8f9fa;
-            border: 1px solid #dde1e7;
-            border-radius: 8px;
-            padding: 12px 16px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
             font-size: 0.85em;
-            color: #5d6d7e;
+            color: #506173;
+            box-shadow: var(--shadow-sm);
         }
         .instructions-bottom-hidden {
             cursor: pointer;
             font-weight: 600;
-            color: #7f8c8d;
+            color: var(--text-muted);
             font-size: 0.88em;
             letter-spacing: 0.3px;
             user-select: none;
@@ -4296,16 +4456,17 @@ return Plotly;
         .instructions-bottom ol { margin: 8px 0 0; padding-left: 18px; line-height: 1.9; }
         /* ─── Plastic Reference Panel ─── */
         .plastic-panel {
-            background: white;
-            border: 1px solid #dde1e7;
-            border-radius: 8px;
-            padding: 14px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow-sm);
         }
         .plastic-panel-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 12px;
+            margin-bottom: 13px;
             flex-wrap: wrap;
             gap: 8px;
         }
@@ -4313,74 +4474,76 @@ return Plotly;
             font-size: 0.75em;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.7px;
-            color: #7f8c8d;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
         }
         .plastic-subtitle {
             font-size: 0.78em;
-            color: #95a5a6;
+            color: var(--text-faint);
             margin-top: 3px;
         }
         .plastic-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 7px;
+            gap: 8px;
             margin-bottom: 10px;
         }
         .plastic-chip-label {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 5px 10px;
-            border-radius: 5px;
-            border: 1.5px solid #dde1e7;
-            background: #f8f9fa;
+            padding: 6px 11px;
+            border-radius: 999px;
+            border: 1.5px solid var(--border);
+            background: var(--surface-2);
             cursor: pointer;
             font-size: 0.82em;
             font-weight: 500;
-            color: #2c3e50;
+            color: var(--text);
             user-select: none;
             transition: all 0.15s;
         }
-        .plastic-chip-label:hover { background: #f0f2f5; border-color: #aab; }
+        .plastic-chip-label:hover { background: var(--surface); border-color: var(--text-faint); box-shadow: var(--shadow-sm); }
         .plastic-chip-label.checked {
-            background: #eaf6ee;
+            background: var(--success-soft);
             border-color: currentColor;
             font-weight: 600;
+            box-shadow: var(--shadow-sm);
         }
         .plastic-chip-label input[type="checkbox"] { display: none; }
-        .plastic-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+        .plastic-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 2px rgba(255,255,255,.7); }
 
         .plastic-group-hdr {
             width: 100%;
             font-size: 0.72em;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.7px;
-            color: #7f8c8d;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
             padding: 8px 2px 4px;
-            border-top: 1px solid #eaecee;
+            border-top: 1px solid var(--border);
             margin-top: 4px;
         }
         .plastic-group-hdr:first-child { border-top: none; margin-top: 0; padding-top: 0; }
         .plastic-sim-note {
             font-size: 0.75em;
-            color: #95a5a6;
+            color: var(--text-faint);
             padding: 4px 2px 0;
             font-style: italic;
         }
         .file-chip.syn-chip {
-            background: #f3eefb;
-            border: 1px solid #c9aee8;
-            color: #6c3483;
+            background: var(--violet-soft);
+            border: 1px solid var(--violet-border);
+            color: #6b21a8;
         }
         /* ─── Matching region overlay note ─── */
         .region-active-note {
             font-size: 0.72em;
-            color: #2980b9;
+            color: var(--primary);
             margin-top: 5px;
             font-style: italic;
         }
+
         </style>
 </head>
 <body>
@@ -4390,7 +4553,7 @@ return Plotly;
     <div class="header">
         <div>
             <h1>FTIR Functional Group &amp; Matching Analysis <span style="font-size:0.55em;font-weight:400;opacity:0.75;letter-spacing:0.03em;">Version 2</span></h1>
-            <div class="version">v2.7 — Dynamic Colors · 20 Plastics · HQI Matching · Single File</div>
+            <div class="version">v2.8 — Per-Spectrum Intensity · 20 Plastics · HQI Matching · Single File</div>
         </div>
         <div style="display:flex;gap:8px;">
             <button class="btn" style="background:rgba(255,255,255,0.18);color:white;border:1px solid rgba(255,255,255,0.3);" onclick="printReport()" title="Print / Export report">🖨 Print</button>
@@ -4412,10 +4575,6 @@ return Plotly;
             <input type="file" id="unknownFile" accept=".dx,.jdx,.dx">
         </div>
         <div class="control-group">
-            <label>Intensity Multiplier: <span id="intVal">1.0×</span></label>
-            <input type="range" id="intensitySlider" min="0.5" max="3" step="0.05" value="1.0" oninput="onSlider()">
-        </div>
-        <div class="control-group">
             <label>Stacking Gap: <span id="gapVal">0.10</span></label>
             <input type="range" id="gapSlider" min="0" max="1" step="0.05" value="0.1" oninput="onSlider()">
         </div>
@@ -4429,16 +4588,24 @@ return Plotly;
     <!-- Status Bar — moved next to plot area -->
     <div class="status-bar">
         <div class="status-section">
-            <div class="status-label">📂 Database Spectra</div>
+            <div class="status-label">📂 Database Spectra <span class="status-hint">— drag slider to scale intensity</span></div>
             <div id="dbChips"><span class="status-empty">No database files loaded</span></div>
         </div>
         <div class="status-section">
-            <div class="status-label">🔬 Unknown Spectrum</div>
+            <div class="status-label">🔬 Unknown Spectrum <span class="status-hint">— drag slider to scale intensity</span></div>
             <div id="unknownChip"><span class="status-empty">No unknown spectrum loaded</span></div>
         </div>
     </div>
 
     <!-- Plot Area — immediately after upload controls -->
+    <div class="plot-hint">
+        <span class="plot-hint-icon">🖱️</span>
+        <span><strong>Navigate the plot:</strong>
+            <b>hold&nbsp;and&nbsp;drag</b> across an area to zoom into it ·
+            drag along the bottom axis to <b>pan</b> left/right ·
+            <b>double-click</b> to reset the view ·
+            hover the top-right toolbar to switch pan/zoom, autoscale, or save a PNG.</span>
+    </div>
     <div id="plotArea"></div>
 
     <!-- Matching Confidence (HQI) + Matching Region — always visible, merged -->
@@ -4538,13 +4705,14 @@ return Plotly;
         <ol>
             <li>Tick <strong>Built-in Reference Plastics</strong> to add simulated references instantly — no .dx files needed. Or upload your own database (.dx) in Step 1.</li>
             <li>Upload your <strong>unknown spectrum</strong> (.dx) in Step 2. The overlay and HQI table update automatically.</li>
+            <li><strong>Navigate the plot:</strong> hold and drag across an area to zoom in, drag along the bottom axis to pan, and double-click to reset. The top-right toolbar (on hover) also switches pan/zoom, autoscales, or saves a PNG.</li>
             <li>The <strong>Matching Confidence (HQI)</strong> table appears right under the plot. Use Quick Presets or set Min/Max to focus the match on a specific region (highlighted in blue on the plot).</li>
-            <li>Use the sliders to adjust spectrum stacking/intensity, and tick functional group boxes to annotate peaks on the unknown.</li>
+            <li>Drag each spectrum's <strong>intensity slider</strong> in the status bar to scale it individually (handy for very intense built-in references), adjust <strong>Stacking Gap</strong> to spread the traces apart, and tick functional group boxes to annotate peaks on the unknown.</li>
             <li>Click <strong>🖨 Print</strong> to open a printable report with the plot + match results.</li>
         </ol>
     </div>
 
-    <div class="footer">FTIR Analysis Tool v2.6 · 20 plastics · Offline · No IT needed</div>
+    <div class="footer">FTIR Analysis Tool v2.8 · 20 plastics · Offline · No IT needed</div>
 </div>
 
 <script>
@@ -4696,6 +4864,7 @@ function handleDBUpload(event) {
             if (data) {
                 data.color = DB_COLORS[state.dbSpectra.length % DB_COLORS.length];
                 data.id    = Math.random().toString(36).slice(2);
+                data.intensity = 1.0;   // per-spectrum display multiplier
                 state.dbSpectra.push(data);
             } else {
                 showNotification(`⚠️ Could not parse "${file.name}" — check it is a valid JCAMP-DX file.`, 'error');
@@ -4717,6 +4886,7 @@ function handleUnknownUpload(event) {
     reader.onload = e => {
         const data = parseJCAMP(e.target.result, file.name);
         if (data) {
+            data.intensity = 1.0;   // per-spectrum display multiplier
             state.unknown = data;
             clearNotification();
             updateStatusBar();
@@ -4773,9 +4943,7 @@ function resetAll() {
     document.getElementById('dbFiles').value = '';
     setAllPlastics(false);  // clear synthetic references
     document.getElementById('unknownFile').value = '';
-    document.getElementById('intensitySlider').value = 1.0;
     document.getElementById('gapSlider').value = 0.1;
-    document.getElementById('intVal').textContent = '1.0×';
     document.getElementById('gapVal').textContent = '0.10';
     document.getElementById('matchMinWn').value = 600;
     document.getElementById('matchMaxWn').value = 4000;
@@ -4818,7 +4986,8 @@ function updateStatusBar() {
                 : `removeDBSpectrum('${s.id}')`;
             return `<span class="file-chip ${chipClass}">
                 <span class="dot" style="background:${s.color};"></span>
-                ${prefix}${escHtml(s.name)}
+                <span class="chip-name">${prefix}${escHtml(s.name)}</span>
+                ${intensityControl(s.id, s.intensity ?? 1)}
                 <button class="remove-btn" onclick="${removeAct}" title="Remove">✕</button>
              </span>`;
         }).join('');
@@ -4828,20 +4997,45 @@ function updateStatusBar() {
         unkChip.innerHTML = '<span class="status-empty">No unknown spectrum loaded</span>';
     } else {
         unkChip.innerHTML = `<span class="file-chip unknown-chip">
-            🔬 ${escHtml(state.unknown.name)}
+            <span class="chip-name">🔬 ${escHtml(state.unknown.name)}</span>
+            ${intensityControl('__unknown__', state.unknown.intensity ?? 1)}
             <button class="remove-btn" onclick="removeUnknown()" title="Remove">✕</button>
         </span>`;
     }
+}
+
+// Compact per-chip intensity slider markup (0.1×–5×). Scaling a reference down
+// is the common case since built-in refs come in at full band depth.
+function intensityControl(id, value) {
+    const v = (value ?? 1).toFixed(1);
+    return `<span class="chip-int" title="Display intensity — drag to scale this spectrum (does not affect matching)">
+        <input type="range" class="chip-int-slider" min="0.1" max="5" step="0.1" value="${v}"
+               oninput="setSpectrumIntensity('${id}', this.value)"
+               onclick="event.stopPropagation()">
+        <span class="chip-int-val" data-int-val="${id}">${v}×</span>
+    </span>`;
 }
 
 // ═══════════════════════════════════════════════════════════════
 //  SLIDER / REGION CONTROLS
 // ═══════════════════════════════════════════════════════════════
 function onSlider() {
-    document.getElementById('intVal').textContent =
-        parseFloat(document.getElementById('intensitySlider').value).toFixed(1) + '×';
     document.getElementById('gapVal').textContent =
         parseFloat(document.getElementById('gapSlider').value).toFixed(2);
+    tryRenderPlot();
+}
+
+// Adjust one spectrum's display intensity (per-chip slider). Updates only the
+// live value label so the slider keeps focus during a drag, then re-plots.
+function setSpectrumIntensity(id, val) {
+    const v = parseFloat(val);
+    const spec = id === '__unknown__'
+        ? state.unknown
+        : state.dbSpectra.find(s => s.id === id);
+    if (!spec) return;
+    spec.intensity = v;
+    const lbl = document.querySelector(`[data-int-val="${id}"]`);
+    if (lbl) lbl.textContent = v.toFixed(1) + '×';
     tryRenderPlot();
 }
 
@@ -4868,8 +5062,15 @@ function tryRenderPlot() {
 function renderPlot() {
     if (!state.unknown && state.dbSpectra.length === 0) return;
 
-    const gap            = parseFloat(document.getElementById('gapSlider').value);
-    const intensityMulti = parseFloat(document.getElementById('intensitySlider').value);
+    const gap = parseFloat(document.getElementById('gapSlider').value);
+
+    // Scale a transmittance spectrum's band depth by a per-spectrum multiplier.
+    // Depth is measured from the spectrum's own baseline (max value ≈ 100% T),
+    // so mult=1 leaves the trace unchanged. Purely visual — HQI is unaffected.
+    const scaleDepth = (ys, mult) => {
+        const base = Math.max(...ys);
+        return ys.map(v => base - (base - v) * mult);
+    };
 
     const traces      = [];
     const annotations = [];
@@ -4877,7 +5078,8 @@ function renderPlot() {
 
     // ── Database spectra ──
     state.dbSpectra.forEach(spec => {
-        const offsetY = spec.y.map(v => v + yOffset);
+        const scaledY = scaleDepth(spec.y, spec.intensity ?? 1);
+        const offsetY = scaledY.map(v => v + yOffset);
         traces.push({
             x: spec.x,
             y: offsetY,
@@ -4894,11 +5096,8 @@ function renderPlot() {
 
     // ── Unknown spectrum ──
     if (state.unknown) {
-        const maxVal = Math.max(...state.unknown.y);
-        const unknownY = state.unknown.y.map(v => {
-            const depth = maxVal - v;
-            return (maxVal - depth * intensityMulti) + yOffset;
-        });
+        const unknownY = scaleDepth(state.unknown.y, state.unknown.intensity ?? 1)
+            .map(v => v + yOffset);
 
         traces.push({
             x: state.unknown.x,
@@ -5379,6 +5578,7 @@ function makeSyntheticSpectrum(key) {
         isSynthetic: true,
         synKey: key,
         id: 'syn_' + key,
+        intensity: 1.0,   // per-spectrum display multiplier (does not affect HQI)
         color: '#bdc3c7'  // placeholder; refreshColors() assigns the real colour
     };
 }
@@ -5511,19 +5711,20 @@ async function printReport() {
 <title>FTIR Report — ${unknownName}</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; }
-  body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 24px 32px; color: #2c3e50; }
-  .report-header { background: linear-gradient(135deg,#1a252f,#2c3e50); color: white; padding: 16px 22px; border-radius: 8px; margin-bottom: 18px; }
-  .report-header h1 { margin: 0; font-size: 1.3em; }
+  body { font-family: 'Segoe UI', system-ui, Tahoma, sans-serif; margin: 0; padding: 24px 32px; color: #1e2a3a; }
+  .report-header { position: relative; overflow: hidden; background: linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#243b53 100%); color: white; padding: 18px 24px; border-radius: 12px; margin-bottom: 18px; }
+  .report-header::before { content:""; position:absolute; inset:0 0 auto 0; height:3px; background:linear-gradient(90deg,#2563eb,#7c3aed 55%,#059669); }
+  .report-header h1 { margin: 0; font-size: 1.3em; font-weight: 650; }
   .meta { font-size: 0.8em; opacity: 0.75; margin-top: 4px; }
-  .section-label { font-size: 0.72em; font-weight:700; text-transform:uppercase; letter-spacing:.7px; color:#7f8c8d; margin: 18px 0 6px; }
-  img { max-width: 100%; border: 1px solid #dde; border-radius: 6px; }
+  .section-label { font-size: 0.72em; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:#64748b; margin: 18px 0 6px; }
+  img { max-width: 100%; border: 1px solid #e5e9f0; border-radius: 10px; }
   table { width: 100%; border-collapse: collapse; margin-top: 6px; }
-  thead tr th { background: #2c3e50; color: white; padding: 9px 13px; text-align: left; font-size: 0.82em; }
-  tbody tr { border-bottom: 1px solid #f0f2f5; }
-  td { padding: 8px 13px; font-size: 0.88em; }
-  .co2-note { background:#fef9e7; border-left:3px solid #f0932b; padding:7px 12px; border-radius:4px; font-size:0.78em; color:#5d4e00; margin-top:10px; }
-  .ref-list { font-size: 0.82em; color: #555; margin: 6px 0; }
-  h2 { font-size: 1em; color: #2c3e50; margin: 20px 0 4px; }
+  thead tr th { background: #f1f5fb; color: #475569; padding: 10px 14px; text-align: left; font-size: 0.74em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; border-bottom: 1px solid #d4dbe6; }
+  tbody tr { border-bottom: 1px solid #eef1f6; }
+  td { padding: 9px 14px; font-size: 0.88em; }
+  .co2-note { background:#fffaeb; border-left:3px solid #ea9a2e; padding:8px 13px; border-radius:6px; font-size:0.78em; color:#7a5a00; margin-top:10px; }
+  .ref-list { font-size: 0.82em; color: #506173; margin: 6px 0; }
+  h2 { font-size: 1em; color: #1e2a3a; margin: 20px 0 4px; }
   @media print {
     body { padding: 12px 16px; }
     .no-print { display: none !important; }
@@ -5533,7 +5734,7 @@ async function printReport() {
 </head><body>
 <div class="report-header">
   <h1>FTIR Functional Group &amp; Matching Report</h1>
-  <div class="meta">Generated: ${now} &nbsp;|&nbsp; FTIR Analysis Tool v2.5</div>
+  <div class="meta">Generated: ${now} &nbsp;|&nbsp; FTIR Analysis Tool v2.8</div>
 </div>
 
 <div class="section-label">Unknown Spectrum</div>
