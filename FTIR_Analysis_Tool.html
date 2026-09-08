@@ -4567,12 +4567,12 @@ return Plotly;
     <!-- Controls -->
     <div class="controls">
         <div class="control-group">
-            <label>1. Upload Database (.dx)</label>
-            <input type="file" id="dbFiles" accept=".dx,.jdx,.dx" multiple>
+            <label>1. Upload Database (.dx / .txt)</label>
+            <input type="file" id="dbFiles" accept=".dx,.jdx,.jcm,.txt,.csv,.tsv,.asc" multiple>
         </div>
         <div class="control-group">
-            <label>2. Upload Unknown (.dx)</label>
-            <input type="file" id="unknownFile" accept=".dx,.jdx,.dx">
+            <label>2. Upload Unknown (.dx / .txt)</label>
+            <input type="file" id="unknownFile" accept=".dx,.jdx,.jcm,.txt,.csv,.tsv,.asc">
         </div>
         <div class="control-group">
             <label>Stacking Gap: <span id="gapVal">0.10</span></label>
@@ -4703,8 +4703,8 @@ return Plotly;
     <div class="instructions-bottom">
         <div class="instructions-heading">📋 How to use this tool</div>
         <ol>
-            <li>Tick <strong>Built-in Reference Plastics</strong> to add simulated references instantly — no .dx files needed. Or upload your own database (.dx) in Step 1.</li>
-            <li>Upload your <strong>unknown spectrum</strong> (.dx) in Step 2. The overlay and HQI table update automatically.</li>
+            <li>Tick <strong>Built-in Reference Plastics</strong> to add simulated references instantly — no .dx files needed. Or upload your own database (.dx, .jdx, or a two-column .txt / .csv text export) in Step 1.</li>
+            <li>Upload your <strong>unknown spectrum</strong> (.dx or .txt) in Step 2. The overlay and HQI table update automatically.</li>
             <li><strong>Navigate the plot:</strong> hold and drag across an area to zoom in, drag along the bottom axis to pan, and double-click to reset. The top-right toolbar (on hover) also switches pan/zoom, autoscales, or saves a PNG.</li>
             <li>The <strong>Matching Confidence (HQI)</strong> table appears right under the plot. Use Quick Presets or set Min/Max to focus the match on a specific region (highlighted in blue on the plot).</li>
             <li>Drag each spectrum's <strong>intensity slider</strong> in the status bar to scale it individually (handy for very intense built-in references), adjust <strong>Stacking Gap</strong> to spread the traces apart, and tick functional group boxes to annotate peaks on the unknown.</li>
@@ -4819,14 +4819,15 @@ function parseJCAMP(text, filename) {
 
     const yFactor = parseFloat(meta['YFACTOR']) || 1.0;
     const xFactor = parseFloat(meta['XFACTOR']) || 1.0;
-    const title   = filename.replace(/.(?:dx|jdx)$/i, '').replace(/_+/g, ' ').trim() || meta['TITLE'] || 'Unknown';
+    const title   = spectrumTitle(filename, meta);
 
     if (isXYFormat && xyPairs.length > 0) {
         return {
             name: title,
             filename,
             x: xyPairs.map(p => p[0] * xFactor),
-            y: xyPairs.map(p => p[1] * yFactor)
+            y: xyPairs.map(p => p[1] * yFactor),
+            yUnits: meta['YUNITS'] || ''
         };
     }
 
@@ -4845,7 +4846,99 @@ function parseJCAMP(text, filename) {
         xs.push(firstX + step * i);   // ← no xFactor: FIRSTX is already in cm⁻¹
         ys.push(rawY[i] * yFactor);
     }
-    return { name: title, filename, x: xs, y: ys };
+    return { name: title, filename, x: xs, y: ys, yUnits: meta['YUNITS'] || '' };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PLAIN-TEXT / ASCII PARSER
+//
+//  Handles JASCO Spectra Manager .txt exports:
+//      "KEY <TAB> VALUE" header lines, an XYDATA marker, then
+//      "X <TAB> Y" rows, optionally followed by a
+//      "##### Extended Information" instrument-metadata footer.
+//  Also handles any generic two-column X/Y table delimited by tabs,
+//  commas, semicolons or spaces (.txt / .csv / .tsv / .asc), with or
+//  without a header row.
+// ═══════════════════════════════════════════════════════════════
+const NUMERIC_RE = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
+
+function parseTextSpectrum(text, filename) {
+    const meta = {};
+    const xs = [], ys = [];
+    let inFooter = false;
+
+    for (const rawLine of text.split(/\r?\n/)) {
+        const line = rawLine.trim();
+        if (!line) continue;
+
+        // JASCO appends "##### Extended Information" and "[Section]" blocks
+        // after the data table — instrument metadata, never spectral points.
+        if (line.startsWith('#####') || line.startsWith('[')) { inFooter = true; continue; }
+        if (inFooter) continue;
+        if (line.startsWith('#') || line.startsWith('$$') || line.startsWith('//')) continue;   // comments
+
+        const parts = line.split(/[\t,;]+|\s+/).filter(Boolean);
+
+        if (parts.length >= 2 && NUMERIC_RE.test(parts[0]) && NUMERIC_RE.test(parts[1])) {
+            xs.push(parseFloat(parts[0]));
+            ys.push(parseFloat(parts[1]));
+        } else {
+            // Header / metadata line: "KEY <TAB or , or ;> VALUE"
+            const sep = line.search(/[\t,;]/);
+            const key = (sep < 0 ? line : line.slice(0, sep)).trim().toUpperCase();
+            const val = (sep < 0 ? ''   : line.slice(sep + 1)).trim();
+            if (key) meta[key] = val;
+        }
+    }
+
+    if (xs.length < 2) return null;
+
+    return {
+        name: spectrumTitle(filename, meta),
+        filename,
+        x: xs,
+        y: ys,
+        yUnits: meta['YUNITS'] || meta['VERTICAL AXIS'] || ''
+    };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SPECTRUM FILE DISPATCH
+// ═══════════════════════════════════════════════════════════════
+function spectrumTitle(filename, meta) {
+    return filename.replace(/\.(?:dx|jdx|jcm|txt|csv|tsv|asc)$/i, '').replace(/_+/g, ' ').trim()
+        || (meta && meta['TITLE'])
+        || 'Unknown';
+}
+
+// Put every loaded spectrum on the same 0–1 transmittance scale as the
+// built-in reference plastics, so stacked overlays stay comparable.
+// HQI is a mean-centred cosine and is already scale-invariant, so this is
+// a display-only correction.
+function normalizeSpectrumScale(data) {
+    if (!data || !data.y.length) return data;
+
+    const units = (data.yUnits || '').toUpperCase();
+    let maxY = -Infinity;
+    for (const v of data.y) if (v > maxY) maxY = v;
+
+    if (units.startsWith('A')) {          // ABSORBANCE / ABS / AU → transmittance
+        data.y = data.y.map(a => Math.pow(10, -a));
+    } else if (maxY > 2) {                // percent transmittance → 0–1
+        data.y = data.y.map(v => v / 100);
+    }
+    delete data.yUnits;
+    return data;
+}
+
+// Route to the JCAMP-DX or the plain-text parser based on file content
+// (JCAMP files are identified by their "##KEY=" labelled-data records),
+// falling back to the other parser if the first one finds no data.
+function parseSpectrumFile(text, filename) {
+    const looksJcamp = /^[ \t]*##[A-Za-z$. ]+=/m.test(text);
+    let data = looksJcamp ? parseJCAMP(text, filename) : parseTextSpectrum(text, filename);
+    if (!data) data = looksJcamp ? parseTextSpectrum(text, filename) : parseJCAMP(text, filename);
+    return normalizeSpectrumScale(data);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -4860,14 +4953,14 @@ function handleDBUpload(event) {
     files.forEach(file => {
         const reader = new FileReader();
         reader.onload = e => {
-            const data = parseJCAMP(e.target.result, file.name);
+            const data = parseSpectrumFile(e.target.result, file.name);
             if (data) {
                 data.color = DB_COLORS[state.dbSpectra.length % DB_COLORS.length];
                 data.id    = Math.random().toString(36).slice(2);
                 data.intensity = 1.0;   // per-spectrum display multiplier
                 state.dbSpectra.push(data);
             } else {
-                showNotification(`⚠️ Could not parse "${file.name}" — check it is a valid JCAMP-DX file.`, 'error');
+                showNotification(`⚠️ Could not parse "${file.name}" — check it is a valid JCAMP-DX (.dx) or two-column text (.txt / .csv) spectrum.`, 'error');
             }
             if (++loaded === files.length) {
                 refreshColors();
@@ -4884,7 +4977,7 @@ function handleUnknownUpload(event) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = e => {
-        const data = parseJCAMP(e.target.result, file.name);
+        const data = parseSpectrumFile(e.target.result, file.name);
         if (data) {
             data.intensity = 1.0;   // per-spectrum display multiplier
             state.unknown = data;
@@ -4892,7 +4985,7 @@ function handleUnknownUpload(event) {
             updateStatusBar();
             tryRenderPlot();
         } else {
-            showNotification(`⚠️ Could not parse "${file.name}" — check it is a valid JCAMP-DX file.`, 'error');
+            showNotification(`⚠️ Could not parse "${file.name}" — check it is a valid JCAMP-DX (.dx) or two-column text (.txt / .csv) spectrum.`, 'error');
         }
     };
     reader.readAsText(file);
