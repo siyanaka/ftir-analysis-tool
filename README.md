@@ -17,6 +17,7 @@ A fully self-contained, offline FTIR spectral analysis tool for plastic identifi
 | Feature | Detail |
 |---|---|
 | **JCAMP-DX upload** | Load `.dx` / `.jdx` spectra directly from your instrument |
+| **Text / ASCII upload** | Load JASCO Spectra Manager `.txt` exports, or any two-column X/Y `.txt` / `.csv` / `.tsv` / `.asc` table |
 | **Built-in reference library** | 20 plastics (conventional + bioplastics) — tick to activate, no files needed |
 | **HQI matching** | Mean-centered cosine similarity, ranked results table |
 | **Interactive plot** | Zoom, pan, hover — powered by Plotly.js (bundled inline) |
@@ -123,7 +124,7 @@ ftir-analysis-tool/
 | **Internet** | Not required after first load |
 | **Installation** | None |
 | **OS** | Windows, macOS, Linux |
-| **Input format** | JCAMP-DX (`.dx` / `.jdx`) |
+| **Input format** | JCAMP-DX (`.dx` / `.jdx`) or two-column text (`.txt` / `.csv` / `.tsv` / `.asc`) |
 
 ---
 
